@@ -25,8 +25,6 @@ import traceback
 
 from dataclasses import dataclass, asdict
 
-from mojo.xmods.xformatting import split_and_indent_lines
-
 MEMBER_TRACE_POLICY = "__traceback_format_policy__"
 
 class TracebackFormatPolicy:
@@ -113,6 +111,42 @@ def get_public_field_members(obj) -> List[Tuple[str, Any]]:
             public_members.append((mname, minst))
 
     return public_members
+
+
+def split_and_indent_lines(msg: str, level: int, indent: int=4, pre_strip_leading: bool=True) -> List[str]:
+    """
+        Takes a string and splits it into multiple lines, then indents each line
+        to the specified level using 'indent' spaces for each level.
+
+        :param msg: The text content to split into lines and then indent.
+        :param level: The integer level number to indent to.
+        :param indent: The number of spaces to indent for each level.
+        :param pre_strip_leading: Strip any leading whitesspace before indenting the lines.
+
+        :returns: The indenting lines
+    """
+
+    # Split msg into lines keeping the line endings
+    msglines = msg.splitlines(False)
+
+    prestrip_len = len(msg)
+    if pre_strip_leading:
+        for nxtline in msglines:
+            stripped = nxtline.lstrip()
+            striplen = len(nxtline) - len(stripped)
+            if striplen < prestrip_len:
+                prestrip_len = striplen
+
+    pfx = " " * (level * indent)
+
+    indented = None
+    if pre_strip_leading and prestrip_len > 0:
+        indented = [pfx + nxtline[prestrip_len:] for nxtline in msglines]
+    else:
+        indented = [pfx + nxtline for nxtline in msglines]
+
+    return indented
+
 
 class EnhancedErrorMixIn:
     def __init__(self, *args, **kwargs):
