@@ -15,6 +15,8 @@ __email__ = "myron.walker@gmail.com"
 __status__ = "Development" # Prototype, Development or Production
 __license__ = "MIT"
 
+from http.client import HTTPException
+
 class AbstractMethodError(RuntimeError):
     """
         This error is raised when an abstract method has been called.
@@ -88,5 +90,73 @@ class SemanticError(BaseException):
         The base error object for errors that indicate that there is an issue with
         a piece of automation code and with the way the Automation Kit code is being
         utilized.
+    """
+
+class HttpBadRequestError(HTTPException):
+    """
+        Raised when the HTTPStatus.400 status code is received.
+    """
+
+class HttpUnAuthorizedError(HTTPException):
+    """
+        Raised when the HTTPStatus.401 status code is received.
+    """
+
+class HttpPaymentRequiredError(HTTPException):
+    """
+        Raised when the HTTPStatus.402 status code is received.
+    """
+
+class HttpForbiddenError(HTTPException):
+    """
+        Raised when the HTTPStatus.403 status code is received.
+    """
+
+class HttpNotFoundError(HTTPException):
+    """
+        Raised when the HTTPStatus.404 status code is received.
+    """
+
+class HttpMethodNotAllowedError(HTTPException):
+    """
+        Raised when the HTTPStatus.405 status code is received.
+    """
+
+class HttpNotAcceptableError(HTTPException):
+    """
+        Raised when the HTTPStatus.406 status code is received.
+    """
+
+class HttpProxyAuthenticationRequiredError(HTTPException):
+    """
+        Raised when the HTTPStatus.407 status code is received.
+    """
+
+class HttpRequestTimeoutError(HTTPException):
+    """
+        Raised when the HTTPStatus.408 status code is received.
+    """
+
+
+class HttpConflictError(HTTPException):
+    """
+        Raised when the HTTPStatus.409 status code is received.
+    """
+
+
+class HttpGoneError(HTTPException):
+    """
+        Raised when the HTTPStatus.410 status code is received.
+    """
+
+
+class HttpLengthRequiredError(HTTPException):
+    """
+        Raised when the HTTPStatus.411 status code is received.
+    """
+
+class HttpPreConditionFailedError(HTTPException):
+    """
+        Raised when the HTTPStatus.412 status code is received.
     """
 
