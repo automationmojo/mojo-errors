@@ -222,8 +222,17 @@ def collect_stack_frames(calling_frame, ex_inst):
             code_args = []
             for argidx in range(0, co_argcount):
                 argname = co_arg_names[argidx]
+                
+                # At some places on the stack, argval might be something that is not representable
+                # a stream or socket or something that doesn't behave well when we call repr.  For
+                # those items just get its type and output that.
                 argval = co_locals[argname]
-                code_args.append("%s=%r" % (argname, argval))
+                try:
+                    argval = repr(argval)
+                except:
+                    argval = f"<{type(argval)}>"
+
+                code_args.append("%s=%s" % (argname, argval))
 
             last_items[-2] = "%s(%s)" % (last_co_name, ", ".join(code_args)) # pylint: disable=unsupported-assignment-operation
 
