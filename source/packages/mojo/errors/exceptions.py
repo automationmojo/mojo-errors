@@ -21,6 +21,12 @@ class AbstractMethodError(RuntimeError):
     """
         This error is raised when an abstract method has been called.
     """
+
+class CancelledError(RuntimeError):
+    """
+        This error indicates that a operation or run is being cancelled.
+    """
+
 class CommandError(RuntimeError):
     """
         This error is the base error for command results errors.
@@ -90,7 +96,7 @@ class SemanticError(BaseException):
         utilized.
     """
 
-class TaskingCancelled(RuntimeError):
+class TaskingCancelled(CancelledError):
     """
         The exception that is raised with a tasking is cancelled.
     """
@@ -102,7 +108,7 @@ class TaskingGroupAssertionError(AssertionError):
         taskings are of type AssertionError.
     """
 
-class TaskingGroupCancelled(RuntimeError):
+class TaskingGroupCancelled(CancelledError):
     """
         The exception that is raised when any of the taskings in a tasking
         group, completed with a cancelled error.
