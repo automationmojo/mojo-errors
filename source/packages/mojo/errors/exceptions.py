@@ -21,8 +21,6 @@ class AbstractMethodError(RuntimeError):
     """
         This error is raised when an abstract method has been called.
     """
-
-
 class CommandError(RuntimeError):
     """
         This error is the base error for command results errors.
@@ -91,6 +89,32 @@ class SemanticError(BaseException):
         a piece of automation code and with the way the Automation Kit code is being
         utilized.
     """
+
+class TaskingCancelled(RuntimeError):
+    """
+        The exception that is raised with a tasking is cancelled.
+    """
+
+
+class TaskingGroupAssertionError(AssertionError):
+    """
+        The exception that is raised when the only failures in a group of
+        taskings are of type AssertionError.
+    """
+
+class TaskingGroupCancelled(RuntimeError):
+    """
+        The exception that is raised when any of the taskings in a tasking
+        group, completed with a cancelled error.
+    """
+
+class TaskingGroupRuntimeError(RuntimeError):
+    """
+        The exception that is raised when any of the taskings in a tasking group
+        completed with a NON Assertion error or NON Cancellation error.
+    """
+
+
 
 class HttpBadRequestError(HTTPException):
     """
