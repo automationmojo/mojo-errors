@@ -12,6 +12,15 @@
             "console": "integratedTerminal",
             "justMyCode": false,
             "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "name": "Python: Test Execption Enhancing",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/source/tests/mojoerrors/exceptions/test_enhancer.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "envFile": "${workspaceFolder}/.env"
         }
     ]
 }

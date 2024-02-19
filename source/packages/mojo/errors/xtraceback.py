@@ -16,16 +16,23 @@ __email__ = "myron.walker@gmail.com"
 __status__ = "Development" # Prototype, Development or Production
 __license__ = "MIT"
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+
+from types import ModuleType, CodeType
 
 import dis
 import inspect
 import os
+import re
 import traceback
+
+from collections import OrderedDict
 
 from dataclasses import dataclass, asdict
 
 MEMBER_TRACE_POLICY = "__traceback_format_policy__"
+
+DECORATOR_EXPR = re.compile(r"^[\s]*@[\D\w]{1}[\d\w]*")
 
 class TracebackFormatPolicy:
     Brief = "Brief"
@@ -38,6 +45,23 @@ class TRACEBACK_CONFIG:
     TRACEBACK_POLICY_OVERRIDE = None
     TRACEBACK_MAX_FULL_DISPLAY = 5
     TRACEBACK_EXPAND_FIRST_N = 1
+
+
+@dataclass
+class FrameDetail:
+    name: str
+    line_no: str
+    line_code: str
+    filename: str
+
+    co_module: ModuleType
+    co_code: CodeType
+    
+    args: Dict[str, Any]
+
+    first_line: Optional[int] = None
+    last_line: Optional[int] = None
+    code_lines: Optional[List[str]] = None
 
 
 @dataclass
@@ -58,6 +82,7 @@ class TracebackDetail:
     extype: str
     exargs: List[str]
     traces: List[TraceDetail]
+
 
 def is_field(candidate):
 
@@ -100,17 +125,6 @@ def is_field(candidate):
     if inspect.ismemberdescriptor(candidate):
         return False
     return True
-
-def get_public_field_members(obj) -> List[Tuple[str, Any]]:
-    public_members = []
-
-    members: List[Tuple[str, Any]] = inspect.getmembers(obj, is_field)
-
-    for mname, minst in members:
-        if mname[0] != "_":
-            public_members.append((mname, minst))
-
-    return public_members
 
 
 def split_and_indent_lines(msg: str, level: int, indent: int=4, pre_strip_leading: bool=True) -> List[str]:
@@ -172,87 +186,63 @@ class EnhancedErrorMixIn:
 
         return
 
-def collect_stack_frames(calling_frame, ex_inst):
 
-    max_full_display = TRACEBACK_CONFIG.TRACEBACK_MAX_FULL_DISPLAY
-    expand_first_n = TRACEBACK_CONFIG.TRACEBACK_EXPAND_FIRST_N
+def collect_stack_frames(calling_frame, ex_inst) -> List[FrameDetail]:
 
-    last_items = None
-    last_co_name = None
     tb_code = None
     tb_lineno = None
 
-    tb_frames = []
+    context_frames = []
 
     for tb_frame, tb_lineno in traceback.walk_stack(calling_frame):
-        tb_frames.insert(0, (tb_frame, tb_lineno))
+        context_frames.insert(0, (tb_frame, tb_lineno))
         if tb_frame.f_code.co_name == '<module>':
             break 
 
-    tb_frames.pop()
+    context_frames.pop()
+
+    traceback_frames = []
 
     for tb_frame, tb_lineno in traceback.walk_tb(ex_inst.__traceback__):
-        tb_frames.append((tb_frame, tb_lineno))
+        traceback_frames.append((tb_frame, tb_lineno))
 
-    tb_frames.reverse()
+    full_stack_frames = context_frames + traceback_frames
+    full_stack_frames.reverse()
 
-    traceback_list = []
+    frame_details_list = []
 
-    for tb_frame, tb_lineno in tb_frames:
-        tb_code = tb_frame.f_code
+    for tb_frame, tb_lineno in full_stack_frames:
+        tb_code: CodeType = tb_frame.f_code
         co_filename: str = tb_code.co_filename
         co_name: str = tb_code.co_name
         co_arg_names = tb_code.co_varnames[:tb_code.co_argcount]
         co_argcount = tb_code.co_argcount
         co_locals = tb_frame.f_locals
+        co_module: ModuleType = inspect.getmodule(tb_code)
+        
+        code_args = OrderedDict()
+        for argidx in range(0, co_argcount):
+            argname = co_arg_names[argidx]
+            argval = co_locals[argname]
+            code_args[argname] = argval
 
-        co_format_policy = TracebackFormatPolicy.Brief
+        code_lines = None
+        code_startline = None
+        code_lastline = None
+        trace_line = "<obfuscated>"
 
-        if TRACEBACK_CONFIG.TRACEBACK_POLICY_OVERRIDE is None:
-            co_module = inspect.getmodule(tb_code)
-            if co_module and hasattr(co_module, MEMBER_TRACE_POLICY):
-                cand_format_policy = getattr(co_module, MEMBER_TRACE_POLICY)
-                if cand_format_policy in VALID_MEMBER_TRACE_POLICY:
-                    co_format_policy = cand_format_policy
-        else:
-            co_format_policy = TRACEBACK_CONFIG.TRACEBACK_POLICY_OVERRIDE
+        if co_name != "<module>" and os.path.exists(co_filename) and co_filename.endswith(".py"):
+            code_lines, code_startline = inspect.getsourcelines(tb_code)
+            code_lines = [cline.rstrip() for cline in code_lines]
+            
+            code_lastline = code_startline + len(code_lines)
+            trace_line_index = tb_lineno - code_startline
+            trace_line = code_lines[trace_line_index].strip()
 
-        items = [co_filename, tb_lineno, co_name, "", None]
-        if last_items is not None:
-            code_args = []
-            for argidx in range(0, co_argcount):
-                argname = co_arg_names[argidx]
-                
-                # At some places on the stack, argval might be something that is not representable
-                # a stream or socket or something that doesn't behave well when we call repr.  For
-                # those items just get its type and output that.
-                argval = co_locals[argname]
-                try:
-                    argval = repr(argval)
-                except:
-                    argval = f"<{type(argval)}>"
+        fdetail = FrameDetail(co_name, tb_lineno, trace_line, co_filename, co_module, tb_code, code_args, code_startline, code_lastline, code_lines)
+        frame_details_list.append(fdetail)
 
-                code_args.append("%s=%s" % (argname, argval))
-
-            last_items[-2] = "%s(%s)" % (last_co_name, ", ".join(code_args)) # pylint: disable=unsupported-assignment-operation
-
-        last_items = items
-        last_co_name = co_name
-
-        traceback_list.append(items)
-        last_items = items
-
-        if expand_first_n > 0 or (max_full_display > 0 and co_format_policy == TracebackFormatPolicy.Full):
-            if os.path.exists(co_filename) and co_filename.endswith(".py"):
-                context_lines, context_startline = inspect.getsourcelines(tb_code)
-                context_lines = [cline.rstrip() for cline in context_lines]
-                clindex = (tb_lineno - context_startline)
-                last_items[-2] = context_lines[clindex].strip()
-                last_items[-1] = context_lines
-                max_full_display -= 1
-                expand_first_n -= 1
-
-    return traceback_list
+    return frame_details_list
 
 
 def enhance_exception(xcpt: BaseException, content, label="CONTEXT"):
@@ -267,6 +257,8 @@ def enhance_exception(xcpt: BaseException, content, label="CONTEXT"):
 
     if EnhancedErrorMixIn not in xcpt_type.__bases__:
         xcpt_type.__bases__ += (EnhancedErrorMixIn,)
+    
+    if not hasattr(xcpt, "_context"):
         xcpt._context = {}
 
     xcpt.add_context(content, label=label)
@@ -284,73 +276,65 @@ def format_exc_lines():
 
 def format_exception(ex_inst: BaseException):
 
-    etypename = type(ex_inst).__name__
-    eargs = ex_inst.args
+    tbdetail = create_traceback_detail(ex_inst)
 
-    exmsg_lines = [
-        "%s: %s" % (etypename, repr(eargs)),
-        "TRACEBACK (most recent call last):"
-    ]
-
-    previous_frame = inspect.currentframe().f_back
-
-    stack_frames = collect_stack_frames(previous_frame, ex_inst)
-    stack_frames_len = len(stack_frames)
-
-    for co_filename, co_lineno, co_name, co_code, co_context in stack_frames:
-
-        exmsg_lines.extend([
-            '  File "%s", line %d, in %s' % (co_filename, co_lineno, co_name),
-            "    %s" % co_code
-        ])
-
-        if hasattr(ex_inst, "context") and co_name in ex_inst.context:
-            cxtinfo = ex_inst.context[co_name]
-            exmsg_lines.append('    %s:' % cxtinfo["label"])
-            exmsg_lines.extend(split_and_indent_lines(cxtinfo["content"], 2, indent=3))
-
-        if co_context is not None and len(co_context) > 0 and stack_frames_len > 1:
-            firstline = co_context[0]
-            lstrip_len = len(firstline) - len(firstline.lstrip())
-            co_context = [cline[lstrip_len:] for cline in co_context]
-            co_context = ["      %s" % cline for cline in co_context]
-            exmsg_lines.extend(co_context)
-
-        exmsg_lines.append('')
+    exmsg_lines = format_traceback_detail(tbdetail)
 
     return exmsg_lines
 
+
 def create_traceback_detail(ex_inst: BaseException) -> TracebackDetail:
+
+    max_full_display = TRACEBACK_CONFIG.TRACEBACK_MAX_FULL_DISPLAY
+    expand_first_n = TRACEBACK_CONFIG.TRACEBACK_EXPAND_FIRST_N
 
     etypename = type(ex_inst).__name__
     eargs = [repr(a) for a in ex_inst.args]
     etraces = []
 
-    previous_frame = inspect.currentframe().f_back
+    calling_frame = inspect.currentframe().f_back
 
-    stack_frames = collect_stack_frames(previous_frame, ex_inst)
-    stack_frames_len = len(stack_frames)
+    stack_frames = collect_stack_frames(calling_frame, ex_inst)
 
-    for co_filename, co_lineno, co_name, co_code, co_context in stack_frames:
-        ntfile = OriginDetail(file=co_filename, lineno=co_lineno, scope=co_name)
-        ntcall = co_code
+    for frame in stack_frames:
+        co_module = frame.co_module
+
+        co_format_policy = TracebackFormatPolicy.Brief
+        if expand_first_n > 0 and max_full_display > 0:
+            co_format_policy = TracebackFormatPolicy.Full
+
+        if TRACEBACK_CONFIG.TRACEBACK_POLICY_OVERRIDE is None:
+            if co_module is not None and hasattr(co_module, MEMBER_TRACE_POLICY):
+                cand_format_policy = getattr(co_module, MEMBER_TRACE_POLICY)
+                if cand_format_policy in VALID_MEMBER_TRACE_POLICY:
+                    co_format_policy = cand_format_policy
+        else:
+            co_format_policy = TRACEBACK_CONFIG.TRACEBACK_POLICY_OVERRIDE
+
+        ntorigin = OriginDetail(file=frame.filename, lineno=frame.line_no, scope=frame.name)
+
+        nt_context = None
+        if hasattr(ex_inst, "context") and frame.name in ex_inst.context:
+            nt_context = ex_inst.context[frame.name]
+
+        ntcall = frame.line_code
         ntcode = []
-        ntcontext = {}
 
-        if co_context is not None and len(co_context) > 0 and stack_frames_len > 1:
-            firstline = co_context[0]
-            lstrip_len = len(firstline) - len(firstline.lstrip())
-            ntcode = [cline[lstrip_len:] for cline in co_context]
+        if co_format_policy == TracebackFormatPolicy.Full:
+            if frame.code_lines is not None:
+                ntcode = frame.code_lines
 
-        if hasattr(ex_inst, "context") and co_name in ex_inst.context:
-            ntcontext = ex_inst.context[co_name]
+                max_full_display -= 1
+                expand_first_n -= 1
 
-        nttrace = TraceDetail(origin=ntfile, call=ntcall, code=ntcode, context=ntcontext)
+
+        nttrace = TraceDetail(origin=ntorigin, call=ntcall, code=ntcode, context=nt_context)
         etraces.append(nttrace)
 
     tb_detail = TracebackDetail(extype=etypename, exargs=eargs, traces=etraces)
 
     return tb_detail
+
 
 def format_traceback_detail(tbdetail: TracebackDetail) -> List[str]:
     
@@ -359,14 +343,20 @@ def format_traceback_detail(tbdetail: TracebackDetail) -> List[str]:
         "Traceback (most recent call first):"
     ]
 
+    ntrace: TraceDetail
     for ntrace in tbdetail.traces:
+
         detail_lines.append(f"  File {ntrace.origin.file}, line {ntrace.origin.lineno}, in {ntrace.origin.scope}")
+        
         if len(ntrace.call) > 0:
             detail_lines.append(f"    Call {ntrace.call}")
+
             if len(ntrace.code) > 0:
                 detail_lines.append("")
+
                 for nline in ntrace.code:
                     detail_lines.append(f"    {nline}")
+
         detail_lines.append("")
     
     return detail_lines
