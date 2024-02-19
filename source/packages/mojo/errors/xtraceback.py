@@ -16,11 +16,10 @@ __email__ = "myron.walker@gmail.com"
 __status__ = "Development" # Prototype, Development or Production
 __license__ = "MIT"
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from types import ModuleType, CodeType
 
-import dis
 import inspect
 import os
 import re
@@ -28,7 +27,7 @@ import traceback
 
 from collections import OrderedDict
 
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 
 MEMBER_TRACE_POLICY = "__traceback_format_policy__"
 
@@ -254,44 +253,6 @@ def collect_stack_frames(calling_frame, ex_inst) -> List[FrameDetail]:
     return frame_details_list
 
 
-def enhance_exception(xcpt: BaseException, content, label="CONTEXT"):
-    """
-        Allows for the enhancing of exceptions.
-    """
-
-    # EnhancedErrorMixIn just uses Duck typing so it should be safe to dynamically
-    # append any exception that does not already inherit include EnhancedErrorMixIn
-    # in its base clases list.
-    xcpt_type = type(xcpt)
-
-    if EnhancedErrorMixIn not in xcpt_type.__bases__:
-        xcpt_type.__bases__ += (EnhancedErrorMixIn,)
-    
-    if not hasattr(xcpt, "_context"):
-        xcpt._context = {}
-
-    xcpt.add_context(content, label=label)
-
-    return
-
-
-def format_exc_lines():
-    """
-        Gets a 'format_exc' result and splits it into mutliple lines.
-    """
-    rtn_lines = traceback.format_exc().splitlines()
-    return rtn_lines
-
-
-def format_exception(ex_inst: BaseException):
-
-    tbdetail = create_traceback_detail(ex_inst)
-
-    exmsg_lines = format_traceback_detail(tbdetail)
-
-    return exmsg_lines
-
-
 def create_traceback_detail(ex_inst: BaseException) -> TracebackDetail:
 
     max_full_display = TRACEBACK_CONFIG.TRACEBACK_MAX_FULL_DISPLAY
@@ -360,6 +321,44 @@ def create_traceback_detail(ex_inst: BaseException) -> TracebackDetail:
     tb_detail = TracebackDetail(extype=etypename, exargs=eargs, traces=etraces)
 
     return tb_detail
+
+
+def enhance_exception(xcpt: BaseException, content, label="CONTEXT"):
+    """
+        Allows for the enhancing of exceptions.
+    """
+
+    # EnhancedErrorMixIn just uses Duck typing so it should be safe to dynamically
+    # append any exception that does not already inherit include EnhancedErrorMixIn
+    # in its base clases list.
+    xcpt_type = type(xcpt)
+
+    if EnhancedErrorMixIn not in xcpt_type.__bases__:
+        xcpt_type.__bases__ += (EnhancedErrorMixIn,)
+    
+    if not hasattr(xcpt, "_context"):
+        xcpt._context = {}
+
+    xcpt.add_context(content, label=label)
+
+    return
+
+
+def format_exc_lines():
+    """
+        Gets a 'format_exc' result and splits it into mutliple lines.
+    """
+    rtn_lines = traceback.format_exc().splitlines()
+    return rtn_lines
+
+
+def format_exception(ex_inst: BaseException):
+
+    tbdetail = create_traceback_detail(ex_inst)
+
+    exmsg_lines = format_traceback_detail(tbdetail)
+
+    return exmsg_lines
 
 
 def format_traceback_detail(tbdetail: TracebackDetail) -> List[str]:
