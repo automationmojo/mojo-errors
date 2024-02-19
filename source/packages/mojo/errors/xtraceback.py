@@ -41,6 +41,8 @@ class TracebackFormatPolicy:
 
 VALID_MEMBER_TRACE_POLICY = ["Brief", "Full", "Hide"]
 
+ARG_ERROR = "<error>"
+
 class TRACEBACK_CONFIG:
     TRACEBACK_POLICY_OVERRIDE = None
     TRACEBACK_MAX_FULL_DISPLAY = 5
@@ -324,7 +326,24 @@ def create_traceback_detail(ex_inst: BaseException) -> TracebackDetail:
         if hasattr(ex_inst, "context") and frame.name in ex_inst.context:
             nt_context = ex_inst.context[frame.name]
 
-        ntcall = frame.line_code
+        rep_args_parts = []
+        for aname, aval in frame.args.items():
+            arep = ARG_ERROR
+
+            if hasattr(aval, "moniker"):
+                arep = aval.moniker
+            else:
+                try:
+                    arep = repr(aval)
+                except:
+                    arep = f"<{type(aval)}>"
+
+            apart = f"{aname}={arep}"
+            rep_args_parts.append(apart)
+
+        rep_args = ", ".join(rep_args_parts)
+
+        ntcall = f"{frame.name}({rep_args})"
         ntcode = []
 
         if co_format_policy == TracebackFormatPolicy.Full:
