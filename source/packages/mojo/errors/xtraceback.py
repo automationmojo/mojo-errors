@@ -291,13 +291,19 @@ def create_traceback_detail(ex_inst: BaseException) -> TracebackDetail:
         for aname, aval in frame.args.items():
             arep = ARG_ERROR
 
-            if hasattr(aval, "moniker"):
-                arep = aval.moniker
-            else:
-                try:
-                    arep = repr(aval)
-                except:
-                    arep = f"<{type(aval)}>"
+            try:
+                if hasattr(aval, "moniker"):
+                    arep = aval.moniker
+                else:
+                    try:
+                        arep = repr(aval)
+                    except:
+                        arep = f"<{type(aval)}>"
+            except:
+                # We might be trying to handle a remote type or something we
+                # cannot even talk to any more.  If so, just leave the representation
+                # as an error
+                pass
 
             apart = f"{aname}={arep}"
             rep_args_parts.append(apart)
