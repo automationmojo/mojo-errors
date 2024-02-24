@@ -234,18 +234,19 @@ def collect_stack_frames(calling_frame, ex_inst) -> List[FrameDetail]:
 
         if co_name != "<module>" and os.path.exists(co_filename) and co_filename.endswith(".py"):
             code_lines, code_startline = inspect.getsourcelines(tb_code)
-            code_lastline = code_startline + len(code_lines)
+            if code_lines is not None and len(code_lines) > 0:
+                code_lastline = code_startline + len(code_lines)
 
-            fmt_len = len(str(code_lastline))
+                fmt_len = len(str(code_lastline))
 
-            fmt_code_lines = []
-            for lidx, cline in enumerate(code_lines):
-                lineno = str(code_startline + lidx).zfill(fmt_len)
-                cline = f"{lineno}: {cline.rstrip()}"
-                fmt_code_lines.append(cline)
-            
-            trace_line_index = tb_lineno - code_startline
-            trace_line = code_lines[trace_line_index].strip()
+                fmt_code_lines = []
+                for lidx, cline in enumerate(code_lines):
+                    lineno = str(code_startline + lidx).zfill(fmt_len)
+                    cline = f"{lineno}: {cline.rstrip()}"
+                    fmt_code_lines.append(cline)
+                
+                trace_line_index = tb_lineno - code_startline
+                trace_line = code_lines[trace_line_index].strip()
 
         fdetail = FrameDetail(co_name, tb_lineno, trace_line, co_filename, co_module, tb_code, code_args, code_startline, code_lastline, fmt_code_lines)
         frame_details_list.append(fdetail)
