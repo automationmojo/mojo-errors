@@ -224,8 +224,14 @@ def collect_stack_frames(calling_frame, ex_inst) -> List[FrameDetail]:
         code_args = OrderedDict()
         for argidx in range(0, co_argcount):
             argname = co_arg_names[argidx]
-            argval = co_locals[argname]
-            code_args[argname] = argval
+            # We cannot count on argname always being present in co_locals at the
+            # time we might be processing an exception.  It could be that it has
+            # already been cleaned up because it is no longer used.
+            if argname in co_locals:
+                argval = co_locals[argname]
+                code_args[argname] = argval
+            else:
+                code_args[argname] = "<not found>"
 
         code_lines = None
         code_startline = None
