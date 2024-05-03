@@ -60,9 +60,9 @@ def customize_activation_script(activate_script: str, env_file: str, cli_alias: 
 def normalize_variable_value(val: str):
 
     val = val.strip()
-
+    
     if (val.startswith('"') and val.endswith('"')) or  (val.startswith("'") and val.endswith("'")):
-        
+
         if len(val) > 2:
             val = val[1: -1]
         else:
