@@ -85,6 +85,11 @@ class NotSupportedError(RuntimeError):
         This error is raised when a method that must be overloaded has not been overridden.
     """
 
+class PublishError(RuntimeError):
+    """
+        This error is raised when the publishing of an artifact fails.
+    """
+
 class SemanticError(BaseException):
     """
         The base error object for errors that indicate that there is an issue with
