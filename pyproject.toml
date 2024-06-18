@@ -18,11 +18,6 @@ packages = [{include="mojo", from="source/packages"}]
 [tool.poetry.dependencies]
 python = ">=3.9,<4.0"
 
-[tool.poetry.group.dev.dependencies]
-myst-parser = "^0.18.1"
-sphinx = ">=1.6,<6"
-sphinx-rtd-theme = "^1.1.1"
-
 [tool.poetry.group.dbio.dependencies]
 
 [build-system]
