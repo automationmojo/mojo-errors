@@ -13,15 +13,18 @@ __credits__ = []
 
 from http.client import HTTPException
 
+
 class AbstractMethodError(RuntimeError):
     """
         This error is raised when an abstract method has been called.
     """
 
+
 class CancelledError(RuntimeError):
     """
         This error indicates that a operation or run is being cancelled.
     """
+
 
 class CommandError(RuntimeError):
     """
@@ -49,6 +52,12 @@ class ConfigurationError(BaseException):
     """
         The base error object for errors that indicate that there is an issue related
         to improper configuration.
+    """
+
+class HaltError(RuntimeError):
+    """
+        This error is raised when a descendant flow control context encounters an issue and exits asking
+        the parent flow control to halt its progress.
     """
 
 class InvalidConfigurationError(ConfigurationError):
@@ -97,11 +106,16 @@ class SemanticError(BaseException):
         utilized.
     """
 
+class SkipError(RuntimeError):
+    """
+        This error is raised when a descendant flow control context, such as a testcase, wishes to exit indicating
+        that its execution is being skipped.
+    """
+
 class TaskingCancelled(CancelledError):
     """
         The exception that is raised with a tasking is cancelled.
     """
-
 
 class TaskingGroupAssertionError(AssertionError):
     """
@@ -121,73 +135,283 @@ class TaskingGroupRuntimeError(RuntimeError):
         completed with a NON Assertion error or NON Cancellation error.
     """
 
+class UnknownParameterError(RuntimeError):
+    """
+        This error is raised when the test framework encounters a
+        reference to a well-known parameter that cannot be resolved.
+    """
 
+# ===============================================================
+# Sorted by status code
+# ===============================================================
 
-class HttpBadRequestError(HTTPException):
+# --------------- 3xx Status Code Errors-----------------
+
+class HttpResponse3xxError(HTTPException):
+    """
+        The base exception type for all the 3xx class of HTTP exceptions.
+    """
+
+class HttpRedirectMultipleChoicesError(HttpResponse3xxError):
+    """
+        Raise when the HTTPStatus.300 status code is received and not handled.
+    """
+
+class HttpRedirectMovedPermanentlyError(HttpResponse3xxError):
+    """
+        Raise when the HTTPStatus.301 status code is received and not handled.
+    """
+class HttpRedirectMovedTemporarilyError(HttpResponse3xxError):
+    """
+        Raise when the HTTPStatus.302 status code is received and not handled.
+    """
+
+class HttpRedirectSeeOtherError(HttpResponse3xxError):
+    """
+        Raise when the HTTPStatus.303 status code is received and not handled.
+    """
+
+class HttpRedirectNotModifiedError(HttpResponse3xxError):
+    """
+        Raise when the HTTPStatus.304 status code is received and not handled.
+    """
+
+class HttpRedirectUseProxyError(HttpResponse3xxError):
+    """
+        Raise when the HTTPStatus.305 status code is received and not handled.
+    """
+
+class HttpRedirectSwitchProxyError(HttpResponse3xxError):
+    """
+        Raise when the HTTPStatus.306 status code is received and not handled.
+    """
+
+class HttpRedirectTemporaryError(HttpResponse3xxError):
+    """
+        Raise when the HTTPStatus.307 status code is received and not handled.
+    """
+
+class HttpRedirectPermanentError(HttpResponse3xxError):
+    """
+        Raise when the HTTPStatus.308 status code is received and not handled.
+    """
+
+# --------------- 4xx Status Code Errors-----------------
+
+class HttpResponse4xxError(HTTPException):
+    """
+        The base exception type for all the 3xx class of HTTP exceptions.
+    """
+
+class HttpBadRequestError(HttpResponse4xxError):
     """
         Raised when the HTTPStatus.400 status code is received.
     """
 
-class HttpUnAuthorizedError(HTTPException):
+class HttpUnAuthorizedError(HttpResponse4xxError):
     """
         Raised when the HTTPStatus.401 status code is received.
     """
 
-class HttpPaymentRequiredError(HTTPException):
+class HttpPaymentRequiredError(HttpResponse4xxError):
     """
         Raised when the HTTPStatus.402 status code is received.
     """
 
-class HttpForbiddenError(HTTPException):
+class HttpForbiddenError(HttpResponse4xxError):
     """
         Raised when the HTTPStatus.403 status code is received.
     """
 
-class HttpNotFoundError(HTTPException):
+class HttpNotFoundError(HttpResponse4xxError):
     """
         Raised when the HTTPStatus.404 status code is received.
     """
 
-class HttpMethodNotAllowedError(HTTPException):
+class HttpMethodNotAllowedError(HttpResponse4xxError):
     """
         Raised when the HTTPStatus.405 status code is received.
     """
 
-class HttpNotAcceptableError(HTTPException):
+class HttpNotAcceptableError(HttpResponse4xxError):
     """
         Raised when the HTTPStatus.406 status code is received.
     """
 
-class HttpProxyAuthenticationRequiredError(HTTPException):
+class HttpProxyAuthenticationRequiredError(HttpResponse4xxError):
     """
         Raised when the HTTPStatus.407 status code is received.
     """
 
-class HttpRequestTimeoutError(HTTPException):
+class HttpRequestTimeoutError(HttpResponse4xxError):
     """
         Raised when the HTTPStatus.408 status code is received.
     """
 
-
-class HttpConflictError(HTTPException):
+class HttpConflictError(HttpResponse4xxError):
     """
         Raised when the HTTPStatus.409 status code is received.
     """
 
-
-class HttpGoneError(HTTPException):
+class HttpGoneError(HttpResponse4xxError):
     """
         Raised when the HTTPStatus.410 status code is received.
     """
 
-
-class HttpLengthRequiredError(HTTPException):
+class HttpLengthRequiredError(HttpResponse4xxError):
     """
         Raised when the HTTPStatus.411 status code is received.
     """
 
-class HttpPreConditionFailedError(HTTPException):
+class HttpPreConditionFailedError(HttpResponse4xxError):
     """
         Raised when the HTTPStatus.412 status code is received.
     """
 
+class HttpPayloadTooLargeError(HttpResponse4xxError):
+    """
+        Raised when the HTTPStatus.413 status code is received.
+    """
+
+class HttpUriTooLongError(HttpResponse4xxError):
+    """
+        Raised when the HTTPStatus.414 status code is received.
+    """
+
+class HttpUnSupportedMediaTypeError(HttpResponse4xxError):
+    """
+        Raised when the HTTPStatus.415 status code is received.
+    """
+
+class HttpRangeNotSatisfiableError(HttpResponse4xxError):
+    """
+        Raised when the HTTPStatus.416 status code is received.
+    """
+
+class HttpExpectationFailedError(HttpResponse4xxError):
+    """
+        Raised when the HTTPStatus.417 status code is received.
+    """
+
+class HttpImATeapotError(HttpResponse4xxError):
+    """
+        Raised when the HTTPStatus.418 status code is received.
+    """
+
+class HttpMisdirectedRequestError(HttpResponse4xxError):
+    """
+        Raised when the HTTPStatus.421 status code is received.
+    """
+
+class HttpUnprocessableContentError(HttpResponse4xxError):
+    """
+        Raised when the HTTPStatus.422 status code is received.
+    """
+
+class HttpLockedError(HttpResponse4xxError):
+    """
+        Raised when the HTTPStatus.423 status code is received.
+    """
+
+class HttpFailedDependencyError(HttpResponse4xxError):
+    """
+        Raised when the HTTPStatus.424 status code is received.
+    """
+
+class HttpTooEarlyError(HttpResponse4xxError):
+    """
+        Raised when the HTTPStatus.425 status code is received.
+    """
+
+class HttpUpgradeRequiredError(HttpResponse4xxError):
+    """
+        Raised when the HTTPStatus.426 status code is received.
+    """
+
+class HttpPreconditionRequiredError(HttpResponse4xxError):
+    """
+        Raised when the HTTPStatus.428 status code is received.
+    """
+
+class HttpTooManyRequestsError(HttpResponse4xxError):
+    """
+        Raised when the HTTPStatus.429 status code is received.
+    """
+
+class HttpHeaderFieldsTooLargeError(HttpResponse4xxError):
+    """
+        Raised when the HTTPStatus.431 status code is received.
+    """
+
+class HttpUnavailableForLegalReasonsError(HttpResponse4xxError):
+    """
+        Raised when the HTTPStatus.451 status code is received.
+    """
+
+# --------------- 5xx Status Code Errors-----------------
+
+
+class HttpResponse5xxError(HTTPException):
+    """
+        The base exception type for all the 5xx class of HTTP exceptions.
+    """
+
+class HttpInternalServerError(HttpResponse5xxError):
+    """
+        Raised when the HTTPStatus.500 status code is received.
+    """
+
+class HttpNotImplementedError(HttpResponse5xxError):
+    """
+        Raised when the HTTPStatus.501 status code is received.
+    """
+
+class HttpBadGatewayError(HttpResponse5xxError):
+    """
+        Raised when the HTTPStatus.502 status code is received.
+    """
+
+class HttpServiceUnavailableError(HttpResponse5xxError):
+    """
+        Raised when the HTTPStatus.503 status code is received.
+    """
+
+class HttpGatewayTimeoutError(HttpResponse5xxError):
+    """
+        Raised when the HTTPStatus.504 status code is received.
+    """
+
+class HttpVersionNotSupportedError(HttpResponse5xxError):
+    """
+        Raised when the HTTPStatus.505 status code is received.
+    """
+
+class HttpCircularReferenceError(HttpResponse5xxError):
+    """
+        Raised when the HTTPStatus.506 status code is received.
+    """
+
+class HttpInsufficientStorageError(HttpResponse5xxError):
+    """
+        Raised when the HTTPStatus.507 status code is received.
+    """
+
+class HttpLoopDetectedError(HttpResponse5xxError):
+    """
+        Raised when the HTTPStatus.508 status code is received.
+    """
+
+class HttpNotExtendedError(HttpResponse5xxError):
+    """
+        Raised when the HTTPStatus.510 status code is received.
+    """
+
+class HttpNetworkAuthenticationRequiredError(HttpResponse5xxError):
+    """
+        Raised when the HTTPStatus.511 status code is received.
+    """
+
+class HttpOtherCodeError(HTTPException):
+    """
+        Can be raised when a HTTP Status code is recieved that is of an unknow value.
+    """

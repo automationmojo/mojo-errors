@@ -25,18 +25,27 @@ from collections import OrderedDict
 
 from dataclasses import dataclass
 
-MEMBER_TRACE_POLICY = "__traceback_format_policy__"
+
+
+ARG_ERROR = "<error>"
 
 DECORATOR_EXPR = re.compile(r"^[\s]*@[\D\w]{1}[\d\w]*")
+
+MEMBER_TRACE_POLICY = "__traceback_format_policy__"
+
 
 class TracebackFormatPolicy:
     Brief = "Brief"
     Full = "Full"
     Hide = "Hide"
 
-VALID_MEMBER_TRACE_POLICY = ["Brief", "Full", "Hide"]
+VALID_MEMBER_TRACE_POLICY = [
+    TracebackFormatPolicy.Brief,
+    TracebackFormatPolicy.Full,
+    TracebackFormatPolicy.Hide
+]
 
-ARG_ERROR = "<error>"
+
 
 class TRACEBACK_CONFIG:
     TRACEBACK_POLICY_OVERRIDE = None
@@ -67,6 +76,7 @@ class OriginDetail:
     lineno: int
     scope: str
 
+
 @dataclass
 class TraceDetail:
     origin: OriginDetail
@@ -81,7 +91,10 @@ class TracebackDetail:
     traces: List[TraceDetail]
 
 
-def is_field(candidate):
+def is_field(candidate: Any) -> bool:
+    """
+        Determines if a object member is a field.
+    """
 
     if inspect.ismodule(candidate):
         return False
@@ -121,6 +134,7 @@ def is_field(candidate):
         return False
     if inspect.ismemberdescriptor(candidate):
         return False
+
     return True
 
 
@@ -161,14 +175,14 @@ def split_and_indent_lines(msg: str, level: int, indent: int=4, pre_strip_leadin
 
 class EnhancedErrorMixIn:
     def __init__(self, *args, **kwargs):
-        self._context = {}
+        self._contexts: Dict[str, Dict[str, str]] = {}
         return
 
     @property
-    def context(self):
-        return self._context
+    def contexts(self) -> Dict[str, Dict[str, str]]:
+        return self._contexts
 
-    def add_context(self, content, label="CONTEXT"):
+    def add_context(self, content: str, label: str = "CONTEXT") -> None:
         """
             Adds context to an exception and associates it with the function context
             on the stack.
@@ -176,7 +190,7 @@ class EnhancedErrorMixIn:
         caller_stack = inspect.stack()[2]
         caller_func_name = caller_stack.frame.f_code.co_name
 
-        self._context[caller_func_name] = {
+        self._contexts[caller_func_name] = {
             "label": label,
             "content": content
         }
@@ -332,7 +346,7 @@ def create_traceback_detail(ex_inst: BaseException) -> TracebackDetail:
     return tb_detail
 
 
-def enhance_exception(xcpt: BaseException, content, label="CONTEXT"):
+def enhance_exception(xcpt: BaseException, content, label="CONTEXT") -> None:
     """
         Allows for the enhancing of exceptions.
     """
@@ -344,11 +358,13 @@ def enhance_exception(xcpt: BaseException, content, label="CONTEXT"):
 
     if EnhancedErrorMixIn not in xcpt_type.__bases__:
         xcpt_type.__bases__ += (EnhancedErrorMixIn,)
-    
-    if not hasattr(xcpt, "_context"):
-        xcpt._context = {}
 
-    xcpt.add_context(content, label=label)
+    enh_xcpt: EnhancedErrorMixIn = xcpt
+
+    if not hasattr(xcpt, "_context"):
+        setattr(enh_xcpt, "_context", {})
+
+    enh_xcpt.add_context(content, label=label)
 
     return
 
