@@ -301,8 +301,8 @@ def create_traceback_detail(ex_inst: BaseException) -> TracebackDetail:
         ntorigin = OriginDetail(file=frame.filename, lineno=frame.line_no, scope=frame.name)
 
         nt_context = None
-        if hasattr(ex_inst, "context") and frame.name in ex_inst.context:
-            nt_context = ex_inst.context[frame.name]
+        if hasattr(ex_inst, "contexts") and frame.name in ex_inst.contexts:
+            nt_context = ex_inst.contexts[frame.name]
 
         rep_args_parts = []
         for aname, aval in frame.args.items():
@@ -361,8 +361,8 @@ def enhance_exception(xcpt: BaseException, content, label="CONTEXT") -> None:
 
     enh_xcpt: EnhancedErrorMixIn = xcpt
 
-    if not hasattr(xcpt, "_context"):
-        setattr(enh_xcpt, "_context", {})
+    if not hasattr(xcpt, "_contexts"):
+        setattr(enh_xcpt, "_contexts", {})
 
     enh_xcpt.add_context(content, label=label)
 
