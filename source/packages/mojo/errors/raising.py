@@ -78,7 +78,7 @@ def format_http_error_message(resp_code: int, resp_msg: str, url: Optional[str] 
     return err_msg
 
 
-def raise_for_http_status(resp_code: int, resp_msg: str, context: Optional[str] = None) -> None:
+def raise_for_http_status(resp_code: int, resp_msg: str,  url: Optional[str] = None, context: Optional[str] = None) -> None:
 
     if resp_code >= 300:
         if resp_code in STATUS_TO_EXCEPTION_TABLE:
@@ -92,7 +92,7 @@ def raise_for_http_status(resp_code: int, resp_msg: str, context: Optional[str] 
         else:
             error_type = HTTPException
 
-        msg = format_http_error_message(resp_code, resp_msg, context)
+        msg = format_http_error_message(resp_code, resp_msg, url=url, context=context)
 
         raise error_type(msg)
 
